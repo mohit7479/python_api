@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Google Maps API Key 
-GOOGLE_MAPS_API_KEY = "AIzaSyBKdFdzO7mtiH1SGpqTox5Bmxlye2HpAHE"
+GOOGLE_MAPS_API_KEY = "Key"
 
 # Charging stations data
 stations_data = {

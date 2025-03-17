@@ -1,1 +1,1 @@
-web: gunicorn api.nearest_stations:app
+web: gunicorn app:app

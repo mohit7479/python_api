@@ -124,7 +124,7 @@ def get_nearest_stations(current_location, destination_coords, battery_percentag
         return {'error': str(e)}
 
 # Route to check API status
-@app.route('/status')
+@app.route('/api/status')
 def status():
     return jsonify({'status': 'OK'})
 

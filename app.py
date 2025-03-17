@@ -124,12 +124,17 @@ def get_nearest_stations(current_location, destination_coords, battery_percentag
         return {'error': str(e)}
 
 # Route to check API status
-@app.route('/api/status')
+@app.route('/api/status', methods=['GET', 'OPTIONS'])
 def status():
+    if request.method == 'OPTIONS':
+        return '', 204
     return jsonify({'status': 'OK'})
 
-@app.route('/api/nearest-stations', methods=['POST'])
+
+@app.route('/api/nearest-stations', methods=['POST', 'OPTIONS'])
 def nearest_stations():
+    if request.method == 'OPTIONS':
+        return '', 204
     try:
         data = request.json
         current_location = tuple(data.get('current_location', ()))
@@ -142,6 +147,21 @@ def nearest_stations():
     except Exception as e:
         print(f"Error in nearest_stations route: {str(e)}")
         return jsonify({'error': f"An error occurred: {str(e)}"}), 500
+
+# @app.route('/api/nearest-stations', methods=['POST'])
+# def nearest_stations():
+#     try:
+#         data = request.json
+#         current_location = tuple(data.get('current_location', ()))
+#         destination_coords = tuple(data.get('destination', ()))
+#         battery_percentage = data.get('battery_percentage', 0)
+#         full_charge = data.get('full_charge', True)
+
+#         stations = get_nearest_stations(current_location, destination_coords, battery_percentage, full_charge)
+#         return jsonify(stations)
+#     except Exception as e:
+#         print(f"Error in nearest_stations route: {str(e)}")
+#         return jsonify({'error': f"An error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 app = Flask(__name__)
 load_dotenv()
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, supports_credentials=True)
 
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
@@ -134,7 +134,12 @@ def status():
 @app.route('/api/nearest-stations', methods=['POST', 'OPTIONS'])
 def nearest_stations():
     if request.method == 'OPTIONS':
-        return '', 204
+        response = jsonify({'message': 'CORS preflight request successful'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        return response, 204
+    
     try:
         data = request.json
         current_location = tuple(data.get('current_location', ()))
@@ -143,7 +148,10 @@ def nearest_stations():
         full_charge = data.get('full_charge', True)
 
         stations = get_nearest_stations(current_location, destination_coords, battery_percentage, full_charge)
-        return jsonify(stations)
+        
+        response = jsonify(stations)
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        return response
     except Exception as e:
         print(f"Error in nearest_stations route: {str(e)}")
         return jsonify({'error': f"An error occurred: {str(e)}"}), 500
@@ -162,6 +170,13 @@ def nearest_stations():
 #     except Exception as e:
 #         print(f"Error in nearest_stations route: {str(e)}")
 #         return jsonify({'error': f"An error occurred: {str(e)}"}), 500
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True)

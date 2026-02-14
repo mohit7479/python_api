@@ -8,10 +8,10 @@ from geopy.distance import geodesic
 from dotenv import load_dotenv
 
 app = Flask(__name__)
-load_dotenv()
+# load_dotenv()
 CORS(app, supports_credentials=True)
 
-GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
+# GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
 stations_data = {
     'station_name': ['FORT', 'KALMASSERY', 'VITYILLA', 'EDAPALLY'],
@@ -31,43 +31,66 @@ def calculate_distance(location1, location2):
 
 def get_traffic_eta(origin, destination):
     try:
-        base_url = "https://routes.googleapis.com/directions/v2:computeRoutes"
-        request_url = f"{base_url}?key={GOOGLE_MAPS_API_KEY}"
+        # OSRM public server
+        url = f"http://router.project-osrm.org/route/v1/driving/{origin[1]},{origin[0]};{destination[1]},{destination[0]}?overview=false"
 
-        future_departure_time = (datetime.now(timezone.utc) + timedelta(minutes=2)).isoformat()
-
-        payload = {
-            "origin": {"location": {"latLng": {"latitude": origin[0], "longitude": origin[1]}}},
-            "destination": {"location": {"latLng": {"latitude": destination[0], "longitude": destination[1]}}},
-            "travelMode": "DRIVE",
-            "routingPreference": "TRAFFIC_AWARE",
-            "departureTime": future_departure_time,
-            "computeAlternativeRoutes": False
-        }
-
-        headers = {"Content-Type": "application/json", "X-Goog-FieldMask": "routes.distanceMeters,routes.duration"}
-        response = requests.post(request_url, json=payload, headers=headers)
+        response = requests.get(url)
         data = response.json()
 
-        print(f"API Response Status: {response.status_code}")
-
-        if response.status_code == 200 and "routes" in data and data["routes"]:
-            duration_text = data["routes"][0]["duration"]
-            duration_seconds = int(duration_text.rstrip('s'))
+        if data.get("routes"):
+            duration_seconds = data["routes"][0]["duration"]
             return duration_seconds
         else:
-            print(f"Routes API request failed: {data}")
+            print("OSRM route not found, using fallback")
             distance = calculate_distance(origin, destination)
-            avg_speed = 40 if distance < 15 else 60
-            adjusted_distance = distance * 1.2
-            time_seconds = (adjusted_distance / avg_speed) * 3600
-            return time_seconds
+            estimated_time_seconds = (distance / 40) * 3600
+            return estimated_time_seconds
 
     except Exception as e:
-        print(f"Error in traffic calculation: {str(e)}")
+        print(f"Error in OSRM routing: {str(e)}")
         distance = calculate_distance(origin, destination)
-        estimated_time_seconds = (distance / 40) * 3600
-        return estimated_time_seconds
+        return (distance / 40) * 3600
+
+
+# def get_traffic_eta(origin, destination):
+#     try:
+#         base_url = "https://routes.googleapis.com/directions/v2:computeRoutes"
+#         request_url = f"{base_url}?key={GOOGLE_MAPS_API_KEY}"
+
+#         future_departure_time = (datetime.now(timezone.utc) + timedelta(minutes=2)).isoformat()
+
+#         payload = {
+#             "origin": {"location": {"latLng": {"latitude": origin[0], "longitude": origin[1]}}},
+#             "destination": {"location": {"latLng": {"latitude": destination[0], "longitude": destination[1]}}},
+#             "travelMode": "DRIVE",
+#             "routingPreference": "TRAFFIC_AWARE",
+#             "departureTime": future_departure_time,
+#             "computeAlternativeRoutes": False
+#         }
+
+#         headers = {"Content-Type": "application/json", "X-Goog-FieldMask": "routes.distanceMeters,routes.duration"}
+#         response = requests.post(request_url, json=payload, headers=headers)
+#         data = response.json()
+
+        # print(f"API Response Status: {response.status_code}")
+
+        # if response.status_code == 200 and "routes" in data and data["routes"]:
+        #     duration_text = data["routes"][0]["duration"]
+        #     duration_seconds = int(duration_text.rstrip('s'))
+        #     return duration_seconds
+        # else:
+        #     print(f"Routes API request failed: {data}")
+        #     distance = calculate_distance(origin, destination)
+        #     avg_speed = 40 if distance < 15 else 60
+    #         adjusted_distance = distance * 1.2
+    #         time_seconds = (adjusted_distance / avg_speed) * 3600
+    #         return time_seconds
+
+    # except Exception as e:
+    #     print(f"Error in traffic calculation: {str(e)}")
+    #     distance = calculate_distance(origin, destination)
+    #     estimated_time_seconds = (distance / 40) * 3600
+    #     return estimated_time_seconds
 
 def get_nearest_stations(current_location, destination_coords, battery_percentage, full_charge=True):
     try:
